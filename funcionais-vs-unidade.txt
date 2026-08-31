@@ -1,0 +1,2 @@
+1. Perspectiva: Testes Funcionais focam na visao do usuario (externo), enquanto Testes de Unidade focam na visao do desenvolvedor (interno). 
+2. Objetivo: Testes Funcionais garantem que a aplicacao funcione corretamente (alto nivel), enquanto Testes de Unidade garantem um codigo limpo e sem bugs (baixo nivel). 
