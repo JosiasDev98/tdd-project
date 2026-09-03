@@ -1,0 +1,4 @@
+O processo TDD (Test-Driven Development) utilizado no desenvolvimento web possui um ciclo duplo:
+1. Ciclo Externo (Testes Funcionais): Simula o ponto de vista do usuário. Escrevemos um teste de aceitação que inicialmente falha, indicando qual funcionalidade macro precisamos construir.
+2. Ciclo Interno (Testes de Unidade e Desenvolvimento): Focado no desenvolvedor. Escrevemos testes de unidade menores para cada pedaço do sistema, escrevemos o código da aplicação até o teste passar (Green), e refatoramos (Refactor) o código mantendo o comportamento. 
+Quando o ciclo interno termina, o teste funcional deve passar, concluindo a funcionalidade.
