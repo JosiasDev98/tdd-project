@@ -6,6 +6,10 @@ class HomePageTest(TestCase):
         response = self.client.get('/')
         self.assertTemplateUsed(response, 'home.html')
 
+    def test_home_page_does_not_contain_lists(self):
+        response = self.client.get('/')
+        self.assertNotContains(response, 'item 1')
+
 class NewListTest(TestCase):
     def test_can_save_a_POST_request(self):
         self.client.post('/lists/new', data={'item_text': 'A new list item'})
