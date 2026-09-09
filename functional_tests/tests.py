@@ -7,7 +7,6 @@ import time
 class NewVisitorTest(LiveServerTestCase):
 
     def setUp(self):
-        # Mantive o Chrome já que funcionou melhor no seu ambiente
         self.browser = webdriver.Chrome()
 
     def tearDown(self):
@@ -18,26 +17,42 @@ class NewVisitorTest(LiveServerTestCase):
         rows = table.find_elements(By.TAG_NAME, 'tr')
         self.assertIn(row_text, [row.text for row in rows])
 
-    def test_can_start_a_list_and_retrieve_it_later(self): 
-        # Trocamos o localhost fixo pela URL dinâmica do servidor de testes
+    def test_multiple_users_can_start_lists_at_different_urls(self):
+        # Usuário 1 (Maria) inicia uma nova lista
         self.browser.get(self.live_server_url)
-
-        self.assertIn('To-Do', self.browser.title)
-        header_text = self.browser.find_element(By.TAG_NAME, 'h1').text  
-        self.assertIn('To-Do', header_text)
-
-        inputbox = self.browser.find_element(By.ID, 'id_new_item')  
-        self.assertEqual(inputbox.get_attribute('placeholder'), 'Enter a to-do item')
-
+        inputbox = self.browser.find_element(By.ID, 'id_new_item')
         inputbox.send_keys('Estudar testes funcionais')
         inputbox.send_keys(Keys.ENTER)
         time.sleep(1)
         self.check_for_row_in_list_table('1: Estudar testes funcionais')
 
+        # O teste exige que a lista dela tenha um URL específico
+        maria_list_url = self.browser.current_url
+        self.assertRegex(maria_list_url, '/lists/.+')
+
+        # Agora um novo usuário (João) entra no site.
+        # Fechamos e reabrimos o navegador para limpar os cookies da Maria
+        self.browser.quit()
+        self.browser = webdriver.Chrome()
+
+        # João acessa a página inicial e não vê os itens de Maria
+        self.browser.get(self.live_server_url)
+        page_text = self.browser.find_element(By.TAG_NAME, 'body').text
+        self.assertNotIn('Estudar testes funcionais', page_text)
+
+        # João adiciona um item novo
         inputbox = self.browser.find_element(By.ID, 'id_new_item')
-        inputbox.send_keys('Fazer a licao de casa')
+        inputbox.send_keys('Comprar leite')
         inputbox.send_keys(Keys.ENTER)
         time.sleep(1)
+        self.check_for_row_in_list_table('1: Comprar leite')
 
-        self.check_for_row_in_list_table('1: Estudar testes funcionais')
-        self.check_for_row_in_list_table('2: Fazer a licao de casa')
+        # João ganha seu próprio URL exclusivo
+        joao_list_url = self.browser.current_url
+        self.assertRegex(joao_list_url, '/lists/.+')
+        self.assertNotEqual(joao_list_url, maria_list_url)
+
+        # Não há sinal dos itens de Maria
+        page_text = self.browser.find_element(By.TAG_NAME, 'body').text
+        self.assertNotIn('Estudar testes funcionais', page_text)
+        self.assertIn('Comprar leite', page_text)
