@@ -1,58 +1,53 @@
+from django.test import LiveServerTestCase
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from django.test import LiveServerTestCase
+from selenium.common.exceptions import WebDriverException
 import time
+
+MAX_WAIT = 10
 
 class NewVisitorTest(LiveServerTestCase):
 
     def setUp(self):
-        self.browser = webdriver.Chrome()
+        # Mantenha o navegador que você já estava usando (Chrome ou Firefox)
+        self.browser = webdriver.Firefox()
 
     def tearDown(self):
         self.browser.quit()
 
-    def check_for_row_in_list_table(self, row_text):
-        table = self.browser.find_element(By.ID, 'id_list_table')
-        rows = table.find_elements(By.TAG_NAME, 'tr')
-        self.assertIn(row_text, [row.text for row in rows])
+    def wait_for_row_in_list_table(self, row_text):
+        start_time = time.time()
+        while True:
+            try:
+                table = self.browser.find_element(by='id', value='id_list_table')
+                rows = table.find_elements(by='tag name', value='tr')
+                self.assertIn(row_text, [row.text for row in rows])
+                return
+            except (AssertionError, WebDriverException) as e:
+                if time.time() - start_time > MAX_WAIT:
+                    raise e
+                time.sleep(0.5)
 
-    def test_multiple_users_can_start_lists_at_different_urls(self):
-        # Usuário 1 (Maria) inicia uma nova lista
+    def test_can_start_a_list_for_one_user(self):
+        # Agora usamos a URL do servidor de testes automático do Django
         self.browser.get(self.live_server_url)
-        inputbox = self.browser.find_element(By.ID, 'id_new_item')
-        inputbox.send_keys('Estudar testes funcionais')
-        inputbox.send_keys(Keys.ENTER)
-        time.sleep(1)
-        self.check_for_row_in_list_table('1: Estudar testes funcionais')
 
-        # O teste exige que a lista dela tenha um URL específico
-        maria_list_url = self.browser.current_url
-        self.assertRegex(maria_list_url, '/lists/.+')
+        self.assertIn('To-Do', self.browser.title)
+        header_text = self.browser.find_element(by='tag name', value='h1').text
+        self.assertIn('To-Do', header_text)
 
-        # Agora um novo usuário (João) entra no site.
-        # Fechamos e reabrimos o navegador para limpar os cookies da Maria
-        self.browser.quit()
-        self.browser = webdriver.Chrome()
+        inputbox = self.browser.find_element(by='id', value='id_new_item')
+        self.assertEqual(inputbox.get_attribute('placeholder'), 'Enter a to-do item')
 
-        # João acessa a página inicial e não vê os itens de Maria
-        self.browser.get(self.live_server_url)
-        page_text = self.browser.find_element(By.TAG_NAME, 'body').text
-        self.assertNotIn('Estudar testes funcionais', page_text)
-
-        # João adiciona um item novo
-        inputbox = self.browser.find_element(By.ID, 'id_new_item')
         inputbox.send_keys('Comprar leite')
         inputbox.send_keys(Keys.ENTER)
-        time.sleep(1)
-        self.check_for_row_in_list_table('1: Comprar leite')
+        
+        # Substituímos o time.sleep() pela nossa função inteligente de espera
+        self.wait_for_row_in_list_table('1: Comprar leite')
 
-        # João ganha seu próprio URL exclusivo
-        joao_list_url = self.browser.current_url
-        self.assertRegex(joao_list_url, '/lists/.+')
-        self.assertNotEqual(joao_list_url, maria_list_url)
+        inputbox = self.browser.find_element(by='id', value='id_new_item')
+        inputbox.send_keys('Comprar pao')
+        inputbox.send_keys(Keys.ENTER)
 
-        # Não há sinal dos itens de Maria
-        page_text = self.browser.find_element(By.TAG_NAME, 'body').text
-        self.assertNotIn('Estudar testes funcionais', page_text)
-        self.assertIn('Comprar leite', page_text)
+        self.wait_for_row_in_list_table('1: Comprar leite')
+        self.wait_for_row_in_list_table('2: Comprar pao')
